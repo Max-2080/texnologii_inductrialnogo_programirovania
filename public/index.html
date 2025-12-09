@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Список дел на неделю</title>
+    <link rel="stylesheet" href="/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <header>
+        <h1><i class="fas fa-tasks"></i> Список дел на неделю</h1>
+        <p class="subtitle">Организуйте свои задачи по дням недели</p>
+    </header>
+
+    <div class="container">
+        <aside class="sidebar">
+            <h2><i class="fas fa-plus-circle"></i> Новая задача</h2>
+            <form id="todoForm">
+                <div class="form-group">
+                    <label for="title">Название задачи *</label>
+                    <input type="text" id="title" name="title" required placeholder="Что нужно сделать?">
+                </div>
+                
+                <div class="form-group">
+                    <label for="description">Описание</label>
+                    <textarea id="description" name="description" placeholder="Детали задачи..."></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label for="day">День недели *</label>
+                    <select id="day" name="day" required>
+                        <option value="">Выберите день</option>
+                        <option value="понедельник">Понедельник</option>
+                        <option value="вторник">Вторник</option>
+                        <option value="среда">Среда</option>
+                        <option value="четверг">Четверг</option>
+                        <option value="пятница">Пятница</option>
+                        <option value="суббота">Суббота</option>
+                        <option value="воскресенье">Воскресенье</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="priority">Приоритет</label>
+                    <select id="priority" name="priority">
+                        <option value="low">Низкий</option>
+                        <option value="medium" selected>Средний</option>
+                        <option value="high">Высокий</option>
+                    </select>
+                </div>
+                
+                <button type="submit" class="btn btn-success">
+                    <i class="fas fa-plus"></i> Добавить задачу
+                </button>
+            </form>
+            
+            <div class="filter-section">
+                <h3><i class="fas fa-filter"></i> Фильтры</h3>
+                
+                <div class="status-filter">
+                    <button class="status-btn active" data-status="all">Все</button>
+                    <button class="status-btn" data-status="active">Активные</button>
+                    <button class="status-btn" data-status="completed">Выполненные</button>
+                </div>
+                
+                <h4>По дням недели:</h4>
+                <div class="days-filter">
+                    <button class="day-btn active" data-day="all">Все дни</button>
+                    <button class="day-btn" data-day="понедельник">Пн</button>
+                    <button class="day-btn" data-day="вторник">Вт</button>
+                    <button class="day-btn" data-day="среда">Ср</button>
+                    <button class="day-btn" data-day="четверг">Чт</button>
+                    <button class="day-btn" data-day="пятница">Пт</button>
+                    <button class="day-btn" data-day="суббота">Сб</button>
+                    <button class="day-btn" data-day="воскресенье">Вс</button>
+                </div>
+            </div>
+        </aside>
+
+        <main class="main-content">
+            <h2><i class="fas fa-list"></i> Мои задачи</h2>
+            <p>Найдено задач: <span id="taskCount">0</span></p>
+            
+            <div id="todoList" class="todo-list">
+                <!-- Задачи будут загружены здесь -->
+                <div class="loading">
+                    <i class="fas fa-spinner fa-spin"></i> Загрузка задач...
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Модальное окно для редактирования -->
+    <div id="editModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <h2><i class="fas fa-edit"></i> Редактировать задачу</h2>
+            <form id="editForm">
+                <input type="hidden" id="editId">
+                <div class="form-group">
+                    <label for="editTitle">Название задачи *</label>
+                    <input type="text" id="editTitle" required>
+                </div>
+                <div class="form-group">
+                    <label for="editDescription">Описание</label>
+                    <textarea id="editDescription"></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="editDay">День недели *</label>
+                    <select id="editDay" required>
+                        <option value="понедельник">Понедельник</option>
+                        <option value="вторник">Вторник</option>
+                        <option value="среда">Среда</option>
+                        <option value="четверг">Четверг</option>
+                        <option value="пятница">Пятница</option>
+                        <option value="суббота">Суббота</option>
+                        <option value="воскресенье">Воскресенье</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="editPriority">Приоритет</label>
+                    <select id="editPriority">
+                        <option value="low">Низкий</option>
+                        <option value="medium">Средний</option>
+                        <option value="high">Высокий</option>
+                    </select>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn" id="cancelEdit">Отмена</button>
+                    <button type="submit" class="btn btn-success">Сохранить</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Конфигурация
+        const API_URL = '/api/todos';
+        
+        // Переменные состояния
+        let currentFilter = {
+            day: 'all',
+            status: 'all'
+        };
+        
+        // DOM элементы
+        const todoForm = document.getElementById('todoForm');
+        const todoList = document.getElementById('todoList');
+        const taskCount = document.getElementById('taskCount');
+        const editModal = document.getElementById('editModal');
+        const editForm = document.getElementById('editForm');
+        const cancelEditBtn = document.getElementById('cancelEdit');
+        
+        // Загрузка задач при старте
+        document.addEventListener('DOMContentLoaded', loadTodos);
+        
+        // Обработка формы добавления задачи
+        todoForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const formData = {
+                title: document.getElementById('title').value,
+                description: document.getElementById('description').value,
+                day: document.getElementById('day').value,
+                priority: document.getElementById('priority').value
+            };
+            
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(formData)
+                });
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    console.log('Задача создана:', result);
+                    
+                    // Сброс формы
+                    todoForm.reset();
+                    document.getElementById('priority').value = 'medium';
+                    
+                    // Перезагрузка списка
+                    loadTodos();
+                    
+                    alert('Задача успешно добавлена!');
+                } else {
+                    const error = await response.json();
+                    alert(`Ошибка: ${error.message}`);
+                }
+            } catch (error) {
+                console.error('Ошибка:', error);
+                alert('Произошла ошибка при создании задачи');
+            }
+        });
+        
+        // Фильтрация по дням недели
+        document.querySelectorAll('.day-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.day-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                currentFilter.day = btn.dataset.day;
+                loadTodos();
+            });
+        });
+        
+        // Фильтрация по статусу
+        document.querySelectorAll('.status-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.status-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                currentFilter.status = btn.dataset.status;
+                loadTodos();
+            });
+        });
+        
+        // Загрузка задач
+        async function loadTodos() {
+            try {
+                // Создаем URL с query параметрами
+                let url = API_URL;
+                const params = new URLSearchParams();
+                
+                if (currentFilter.day && currentFilter.day !== 'all') {
+                    params.append('day', currentFilter.day);
+                }
+                
+                if (currentFilter.status !== 'all') {
+                    params.append('completed', currentFilter.status === 'completed');
+                }
+                
+                if (params.toString()) {
+                    url += `?${params.toString()}`;
+                }
+                
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                renderTodos(data.todos);
+            } catch (error) {
+                console.error('Ошибка загрузки задач:', error);
+                todoList.innerHTML = '<div class="error">Ошибка загрузки задач</div>';
+            }
+        }
+        
+        // Рендеринг списка задач
+        function renderTodos(todos) {
+            if (todos.length === 0) {
+                todoList.innerHTML = '<div class="empty-state">Задачи не найдены</div>';
+                taskCount.textContent = '0';
+                return;
+            }
+            
+            taskCount.textContent = todos.length;
+            
+            todoList.innerHTML = todos.map(todo => `
+                <div class="todo-item ${todo.priority} ${todo.completed ? 'completed' : ''}" data-id="${todo.id}">
+                    <div class="todo-header">
+                        <div class="todo-title">
+                            ${todo.completed ? '<s>' : ''}${todo.title}${todo.completed ? '</s>' : ''}
+                        </div>
+                        <span class="todo-day">${capitalizeFirstLetter(todo.day)}</span>
+                    </div>
+                    
+                    ${todo.description ? `
+                        <div class="todo-description">
+                            ${todo.completed ? '<s>' : ''}${todo.description}${todo.completed ? '</s>' : ''}
+                        </div>
+                    ` : ''}
+                    
+                    <div class="todo-footer">
+                        <span class="todo-priority">
+                            <i class="fas fa-flag"></i> 
+                            ${getPriorityText(todo.priority)}
+                        </span>
+                        
+                        <div class="todo-actions">
+                            <button class="action-btn toggle-btn" onclick="toggleTodo(${todo.id})" 
+                                    title="${todo.completed ? 'Возобновить' : 'Выполнить'}">
+                                <i class="fas ${todo.completed ? 'fa-redo' : 'fa-check'}"></i>
+                            </button>
+                            
+                            <button class="action-btn edit-btn" onclick="editTodo(${todo.id})" title="Редактировать">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            
+                            <button class="action-btn delete-btn" onclick="deleteTodo(${todo.id})" title="Удалить">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        // Переключение статуса задачи
+        async function toggleTodo(id) {
+            try {
+                const response = await fetch(`${API_URL}/${id}/toggle`, {
+                    method: 'PUT'
+                });
+                
+                if (response.ok) {
+                    loadTodos();
+                }
+            } catch (error) {
+                console.error('Ошибка:', error);
+                alert('Ошибка при обновлении задачи');
+            }
+        }
+        
+        // Удаление задачи
+        async function deleteTodo(id) {
+            if (!confirm('Вы уверены, что хотите удалить эту задачу?')) return;
+            
+            try {
+                const response = await fetch(`${API_URL}/${id}`, {
+                    method: 'DELETE'
+                });
+                
+                if (response.ok) {
+                    loadTodos();
+                    alert('Задача удалена');
+                }
+            } catch (error) {
+                console.error('Ошибка:', error);
+                alert('Ошибка при удалении задачи');
+            }
+        }
+        
+        // Редактирование задачи
+        async function editTodo(id) {
+            try {
+                // Загрузка данных задачи
+                const response = await fetch(`${API_URL}/${id}`);
+                const data = await response.json();
+                
+                if (!data.todo) {
+                    alert('Задача не найдена');
+                    return;
+                }
+                
+                // Заполнение формы редактирования
+                document.getElementById('editId').value = data.todo.id;
+                document.getElementById('editTitle').value = data.todo.title;
+                document.getElementById('editDescription').value = data.todo.description;
+                document.getElementById('editDay').value = data.todo.day;
+                document.getElementById('editPriority').value = data.todo.priority;
+                
+                // Показ модального окна
+                editModal.style.display = 'block';
+            } catch (error) {
+                console.error('Ошибка:', error);
+                alert('Ошибка при загрузке задачи');
+            }
+        }
+        
+        // Обработка формы редактирования
+        editForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const id = document.getElementById('editId').value;
+            const formData = {
+                title: document.getElementById('editTitle').value,
+                description: document.getElementById('editDescription').value,
+                day: document.getElementById('editDay').value,
+                priority: document.getElementById('editPriority').value
+            };
+            
+            try {
+                const response = await fetch(`${API_URL}/${id}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(formData)
+                });
+                
+                if (response.ok) {
+                    editModal.style.display = 'none';
+                    loadTodos();
+                    alert('Задача обновлена');
+                } else {
+                    const error = await response.json();
+                    alert(`Ошибка: ${error.message}`);
+                }
+            } catch (error) {
+                console.error('Ошибка:', error);
+                alert('Ошибка при обновлении задачи');
+            }
+        });
+        
+        // Закрытие модального окна
+        cancelEditBtn.addEventListener('click', () => {
+            editModal.style.display = 'none';
+        });
+        
+        // Вспомогательные функции
+        function capitalizeFirstLetter(string) {
+            return string.charAt(0).toUpperCase() + string.slice(1);
+        }
+        
+        function getPriorityText(priority) {
+            const texts = {
+                'low': 'Низкий',
+                'medium': 'Средний',
+                'high': 'Высокий'
+            };
+            return texts[priority] || priority;
+        }
+        
+        // Закрытие модального окна при клике вне его
+        window.addEventListener('click', (e) => {
+            if (e.target === editModal) {
+                editModal.style.display = 'none';
+            }
+        });
+        
+        // Добавляем стили для модального окна
+        const style = document.createElement('style');
+        style.textContent = `
+            .modal {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0,0,0,0.5);
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                z-index: 1000;
+            }
+            
+            .modal-content {
+                background: white;
+                padding: 2rem;
+                border-radius: 10px;
+                max-width: 500px;
+                width: 90%;
+                max-height: 90vh;
+                overflow-y: auto;
+            }
+            
+            .modal-actions {
+                display: flex;
+                gap: 1rem;
+                margin-top: 1rem;
+            }
+            
+            .modal-actions .btn {
+                flex: 1;
+            }
+            
+            .loading, .error, .empty-state {
+                text-align: center;
+                padding: 2rem;
+                color: #666;
+                font-size: 1.1rem;
+            }
+            
+            .error {
+                color: #f56565;
+            }
+        `;
+        document.head.appendChild(style);
+    </script>
+</body>
+</html>
