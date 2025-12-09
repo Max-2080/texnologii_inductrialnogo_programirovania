@@ -1,0 +1,31 @@
+{
+  "todos": [
+    {
+      "id": 1,
+      "title": "Сделать зарядку",
+      "description": "Утренняя зарядка 15 минут",
+      "day": "понедельник",
+      "priority": "high",
+      "completed": false,
+      "createdAt": "2024-01-01T08:00:00.000Z"
+    },
+    {
+      "id": 2,
+      "title": "Купить продукты",
+      "description": "Молоко, хлеб, яйца",
+      "day": "вторник",
+      "priority": "medium",
+      "completed": true,
+      "createdAt": "2024-01-01T09:00:00.000Z"
+    },
+    {
+      "id": 3,
+      "title": "Встреча с другом",
+      "description": "Кафе в центре, 19:00",
+      "day": "среда",
+      "priority": "low",
+      "completed": false,
+      "createdAt": "2024-01-01T10:00:00.000Z"
+    }
+  ]
+}
